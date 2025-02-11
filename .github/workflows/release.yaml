@@ -1,16 +1,26 @@
 name: Release
 
 on:
-  workflow_dispatch:
   push:
     tags:
-      - "v*"
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+  build:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            extension: ""
+          - target: x86_64-pc-windows-gnu
+            os: windows-latest
+            extension: ".exe"
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -19,34 +29,59 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu
+          targets: ${{ matrix.target }}
 
-      - name: Install Cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
-
-      - name: Build for Linux x86_64
-        run: cross build --release --target x86_64-unknown-linux-gnu
-
-      - name: Build for Windows x86_64
-        run: cross build --release --target x86_64-pc-windows-gnu
-
-      - name: Prepare release assets
+      # Install OpenSSL for Linux
+      - name: Install OpenSSL (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          mkdir artifacts
-          cp target/x86_64-unknown-linux-gnu/release/refield artifacts/refield-linux-amd64
-          cp target/x86_64-pc-windows-gnu/release/refield.exe artifacts/refield-windows-amd64.exe
+          sudo apt update
+          sudo apt install -y pkg-config libssl-dev
 
-      - name: Generate release notes
+      # Install OpenSSL for Windows
+      - name: Install OpenSSL (Windows)
+        if: matrix.os == 'windows-latest'
         run: |
-          echo "# Release Notes" > artifacts/RELEASE_NOTES.md
-          echo "- Linux (amd64) and Windows (x86_64) binaries included." >> artifacts/RELEASE_NOTES.md
+          choco install openssl
+          echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=C:\Program Files\OpenSSL-Win64\lib" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=C:\Program Files\OpenSSL-Win64\include" >> $GITHUB_ENV
+
+      - name: Build project
+        run: cargo build --release --target ${{ matrix.target }}
+        env:
+          OPENSSL_VENDORED: "1"
+          OPENSSL_STATIC: "1"
+
+      - name: Rename and package binary
+        run: |
+          mv target/${{ matrix.target }}/release/refield${{ matrix.extension }} refield-${{ matrix.target }}${{ matrix.extension }}
+          tar -czvf refield-${{ matrix.target }}.tar.gz refield-${{ matrix.target }}${{ matrix.extension }}
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: refield-${{ matrix.target }}
+          path: refield-${{ matrix.target }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List downloaded files
+        run: ls -R artifacts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/refield-linux-amd64
-            artifacts/refield-windows-amd64.exe
-            artifacts/RELEASE_NOTES.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: artifacts/**/*.tar.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
