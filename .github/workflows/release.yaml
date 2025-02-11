@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:  # Allows manual execution from GitHub Actions UI
 
 permissions:
   contents: write
