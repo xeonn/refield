@@ -11,7 +11,16 @@
 - Handles partitioned and non-partitioned tables
 
 ## Installation
-Ensure you have Rust installed, then build the project:
+
+### Prebuilt Binaries
+You can download the latest release from the [Releases](https://github.com/xeonn/refield/releases) page.
+
+**Note:** Due to changes in our release pipeline, macOS binaries are not provided. We currently support:
+- Linux (AMD64)
+- Windows (AMD64)
+
+### Build from Source
+To build from source, ensure you have Rust installed:
 ```sh
 cargo build --release
 ```

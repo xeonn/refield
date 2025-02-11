@@ -1,80 +1,52 @@
 name: Release
 
 on:
+  workflow_dispatch:
   push:
     tags:
-      - "v*"  # Runs only when pushing a version tag (e.g., v1.0.0)
-  workflow_dispatch:  # Allows manual execution from GitHub UI
-
-permissions:
-  contents: write  # Required for uploading release assets
+      - "v*"
 
 jobs:
-  build:
-    name: Build Binaries
-    runs-on: ubuntu-latest  # Use Ubuntu as the main build runner
-    strategy:
-      matrix:
-        target: 
-          - x86_64-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
-          - x86_64-pc-windows-gnu
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust
+      - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: x86_64-unknown-linux-gnu, x86_64-pc-windows-gnu
 
-      - name: Install cross (for cross-compilation)
+      - name: Install Cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Build for ${{ matrix.target }}
-        run: cross build --release --target ${{ matrix.target }}
+      - name: Build for Linux x86_64
+        run: cross build --release --target x86_64-unknown-linux-gnu
 
-      - name: Rename binary for release
+      - name: Build for Windows x86_64
+        run: cross build --release --target x86_64-pc-windows-gnu
+
+      - name: Prepare release assets
         run: |
-          BIN_NAME="refield"
-          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
-            mv target/${{ matrix.target }}/release/$BIN_NAME.exe $BIN_NAME-${{ matrix.target }}.exe
-          else
-            mv target/${{ matrix.target }}/release/$BIN_NAME $BIN_NAME-${{ matrix.target }}
-          fi
+          mkdir artifacts
+          cp target/x86_64-unknown-linux-gnu/release/refield artifacts/refield-linux-amd64
+          cp target/x86_64-pc-windows-gnu/release/refield.exe artifacts/refield-windows-amd64.exe
 
-      - name: Upload binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: refield-${{ matrix.target }}
-          path: |
-            refield-${{ matrix.target }}*
-          if-no-files-found: error
-
-  release:
-    name: Create GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download built binaries
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Prepare Release Assets
+      - name: Generate release notes
         run: |
-          cd artifacts
-          find . -type f -exec mv {} . \;
-          rm -r refield-*
-          ls -lh
+          echo "# Release Notes" > artifacts/RELEASE_NOTES.md
+          echo "- Linux (amd64) and Windows (x86_64) binaries included." >> artifacts/RELEASE_NOTES.md
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          files: |
+            artifacts/refield-linux-amd64
+            artifacts/refield-windows-amd64.exe
+            artifacts/RELEASE_NOTES.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
