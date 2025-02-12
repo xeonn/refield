@@ -1,7 +1,12 @@
 [package]
 name = "refield"
-version = "0.1.0"
+version = "1.0.1"
 edition = "2021"
+repository = "https://github.com/xeonn/refield"
+authors = ["Onn Khairuddin"]
+description = """
+Renames a field in documents within a CouchDB database
+"""
 
 [dependencies]
 clap = { version = "4.5.28", features = ["derive"] }

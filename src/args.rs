@@ -12,10 +12,15 @@ pub struct Args {
 
 /// Parse command-line arguments using `clap`
 pub fn parse_args() -> Result<Args, String> {
-    let matches = Command::new("CouchDB Field Renamer")
-        .version("1.1")
-        .author("Onn Khairuddin Ismail")
-        .about("Renames a field in documents within a CouchDB database")
+    let name = env!("CARGO_PKG_NAME");
+    let version = env!("CARGO_PKG_VERSION");
+    let authors = env!("CARGO_PKG_AUTHORS");
+    let description = env!("CARGO_PKG_DESCRIPTION");
+
+    let matches = Command::new(name)
+        .version(version)
+        .author(authors)
+        .about(description)
         .arg(
             Arg::new("db_url")
                 .short('u')
