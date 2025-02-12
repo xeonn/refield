@@ -13,7 +13,7 @@ pub struct Args {
 /// Parse command-line arguments using `clap`
 pub fn parse_args() -> Result<Args, String> {
     let matches = Command::new("CouchDB Field Renamer")
-        .version("1.0")
+        .version("1.1")
         .author("Onn Khairuddin Ismail")
         .about("Renames a field in documents within a CouchDB database")
         .arg(
