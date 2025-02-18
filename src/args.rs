@@ -8,6 +8,7 @@ pub struct Args {
     pub old_field: String,    // Old field name to be renamed (supports dot notation for nested fields)
     pub new_field: String,    // New field name to replace the old one
     pub dry_run: bool,        // Whether to perform a dry run (preview changes without modifying the database)
+    pub limit: usize,         // Maximum number of documents to fetch per iteration
 }
 
 /// Parse command-line arguments using `clap`
@@ -60,6 +61,15 @@ pub fn parse_args() -> Result<Args, String> {
                 .action(clap::ArgAction::SetTrue) // Defaults to false unless --dry-run is provided
                 .default_value("false"), // Default value is false (not dry-run)
         )
+        .arg(
+            Arg::new("limit")
+                .short('l')
+                .long("limit")
+                .value_name("LIMIT")
+                .default_value("1000")
+                .value_parser(clap::value_parser!(usize))
+                .help("Maximum number of documents to fetch per iteration"),
+        )
         .get_matches();
 
     // Extract arguments from matches
@@ -68,6 +78,7 @@ pub fn parse_args() -> Result<Args, String> {
     let old_field = matches.get_one::<String>("old_field").unwrap().clone();
     let new_field = matches.get_one::<String>("new_field").unwrap().clone();
     let dry_run = *matches.get_one::<bool>("dry_run").unwrap_or(&false);
+    let limit = *matches.get_one::<usize>("limit").unwrap_or(&1000);
 
     // Validate that the paths (excluding the last key) are identical
     let old_path: Vec<&str> = old_field.split('.').collect();
@@ -97,6 +108,7 @@ pub fn parse_args() -> Result<Args, String> {
         old_field,
         new_field,
         dry_run,
+        limit,
     })
 }
 

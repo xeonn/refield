@@ -1,6 +1,6 @@
 [package]
 name = "refield"
-version = "1.0.1"
+version = "1.1.0"
 edition = "2021"
 repository = "https://github.com/xeonn/refield"
 authors = ["Onn Khairuddin"]
@@ -11,5 +11,7 @@ Renames a field in documents within a CouchDB database
 [dependencies]
 clap = { version = "4.5.28", features = ["derive"] }
 reqwest = { version = "0.12.12", features = ["json"] }
+serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
 tokio = { version = "1.43.0", features = ["full"] }
+urlencoding = "2.1.3"

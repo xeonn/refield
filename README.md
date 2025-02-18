@@ -36,6 +36,7 @@ Run the tool with the following command-line arguments:
 - `-t, --table`     : Name of the table (or document type)
 - `-o, --old`       : Old field name to be renamed (supports dot notation)
 - `-n, --new`       : New field name to replace the old one
+- `-l, --limit`     : Maximum number of documents to fetch per iteration [default: 1000]
 - `--dry-run`       : Enable dry-run mode to preview changes
 
 ### Example:
